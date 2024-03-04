@@ -1,23 +1,22 @@
-// mongodbdriver.go
-package models
+package main
 
 import (
-    "context"
-    "errors"
-    "fmt"
-    "go.mongodb.org/mongo-driver/bson"
-    "go.mongodb.org/mongo-driver/mongo"
-    "go.mongodb.org/mongo-driver/mongo/options"
-    "time"
-)
+	"context"
+	"errors"
+	"fmt"
+	"time"
 
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
 type MongoDBDriver struct {
     client     *mongo.Client
     database   *mongo.Database
     collection *mongo.Collection
 }
 
-func NewMongoDBDriver(connectionString, dbName, collectionName string) (*MongoDBDriver, error) {
+func Connect(connectionString, dbName, collectionName string) (*MongoDBDriver, error) {
+  
     client, err := mongo.NewClient(options.Client().ApplyURI(connectionString))
     if err != nil {
         return nil, err
@@ -29,10 +28,25 @@ func NewMongoDBDriver(connectionString, dbName, collectionName string) (*MongoDB
     err = client.Connect(ctx)
     if err != nil {
         return nil, err
+    } else {
+        fmt.Println("Connected to Server at:",connectionString)
+    }
+    database := client.Database(dbName)
+    // Check if the collection object is not nil
+    if database != nil {
+        fmt.Println("Connected to the Database:",dbName)
+    } else {
+        fmt.Println("Failed connect to the Database:",dbName)
     }
 
-    database := client.Database(dbName)
+   
     collection := database.Collection(collectionName)
+
+    if collection != nil {
+        fmt.Println("Connected to the collection:", collectionName)
+    } else {
+        fmt.Println("Failed to connect to the collection:", collectionName)
+    }
 
     return &MongoDBDriver{
         client:     client,
@@ -41,12 +55,11 @@ func NewMongoDBDriver(connectionString, dbName, collectionName string) (*MongoDB
     }, nil
 }
 
-func (m *MongoDBDriver) Connect() error {
-    // Already implemented in NewMongoDBDriver
-    return nil
-}
-
 func (m *MongoDBDriver) Disconnect() error {
+    if m.client == nil {
+        return errors.New("client is nil")
+    }
+
     ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
     defer cancel()
 
@@ -55,123 +68,124 @@ func (m *MongoDBDriver) Disconnect() error {
         return fmt.Errorf("error disconnecting from MongoDB: %v", err)
     }
 
-    return nil
+    return errors.New("Disconnected!")
 }
 
-func (m *MongoDBDriver) InsertAdmin(admin *Admin) error {
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
 
-    _, err := m.collection.InsertOne(ctx, admin)
-    if err != nil {
-        return fmt.Errorf("error inserting admin into MongoDB: %v", err)
-    }
+//func (m *MongoDBDriver) InsertAdmin(admin *Admin) error {
+//    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+//    defer cancel()
 
-    return nil
-}
+//    _, err := m.collection.InsertOne(ctx, admin)
+//    if err != nil {
+//        return fmt.Errorf("error inserting admin into MongoDB: %v", err)
+//    }
 
-func (m *MongoDBDriver) FindAdminByID(id string) (*Admin, error) {
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
+//    return nil
+//}
 
-    var admin Admin
-    err := m.collection.FindOne(ctx, bson.M{"admin_id": id}).Decode(&admin)
-    if err != nil {
-        if errors.Is(err, mongo.ErrNoDocuments) {
-            return nil, nil // Admin not found
-        }
-        return nil, fmt.Errorf("error finding admin by ID from MongoDB: %v", err)
-    }
+//func (m *MongoDBDriver) FindAdminByID(id string) (*Admin, error) {
+//    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+//    defer cancel()
 
-    return &admin, nil
-}
+//    var admin Admin
+//    err := m.collection.FindOne(ctx, bson.M{"admin_id": id}).Decode(&admin)
+//    if err != nil {
+//        if errors.Is(err, mongo.ErrNoDocuments) {
+//            return nil, nil // Admin not found
+//        }
+//        return nil, fmt.Errorf("error finding admin by ID from MongoDB: %v", err)
+//    }
 
-func (m *MongoDBDriver) InsertBook(book *Book) error {
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
+//    return &admin, nil
+//}
 
-    _, err := m.collection.InsertOne(ctx, book)
-    if err != nil {
-        return fmt.Errorf("error inserting book into MongoDB: %v", err)
-    }
+//func (m *MongoDBDriver) InsertBook(book *Book) error {
+//    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+//    defer cancel()
 
-    return nil
-}
+//    _, err := m.collection.InsertOne(ctx, book)
+//    if err != nil {
+//        return fmt.Errorf("error inserting book into MongoDB: %v", err)
+//    }
 
-func (m *MongoDBDriver) FindBookByID(id string) (*Book, error) {
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
+//    return nil
+//}
 
-    var book Book
-    err := m.collection.FindOne(ctx, bson.M{"book_id": id}).Decode(&book)
-    if err != nil {
-        if errors.Is(err, mongo.ErrNoDocuments) {
-            return nil, nil // Book not found
-        }
-        return nil, fmt.Errorf("error finding book by ID from MongoDB: %v", err)
-    }
+//func (m *MongoDBDriver) FindBookByID(id string) (*Book, error) {
+//    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+//    defer cancel()
 
-    return &book, nil
-}
+//    var book Book
+//    err := m.collection.FindOne(ctx, bson.M{"book_id": id}).Decode(&book)
+//    if err != nil {
+//        if errors.Is(err, mongo.ErrNoDocuments) {
+//            return nil, nil // Book not found
+//        }
+//        return nil, fmt.Errorf("error finding book by ID from MongoDB: %v", err)
+//    }
 
-func (m *MongoDBDriver) InsertStudent(student *Student) error {
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
+//    return &book, nil
+//}
 
-    _, err := m.collection.InsertOne(ctx, student)
-    if err != nil {
-        return fmt.Errorf("error inserting student into MongoDB: %v", err)
-    }
+//func (m *MongoDBDriver) InsertStudent(student *Student) error {
+//    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+//    defer cancel()
 
-    return nil
-}
+//    _, err := m.collection.InsertOne(ctx, student)
+//    if err != nil {
+//        return fmt.Errorf("error inserting student into MongoDB: %v", err)
+//    }
 
-func (m *MongoDBDriver) FindStudentByID(id string) (*Student, error) {
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
+//    return nil
+//}
 
-    var student Student
-    err := m.collection.FindOne(ctx, bson.M{"reg_no": id}).Decode(&student)
-    if err != nil {
-        if errors.Is(err, mongo.ErrNoDocuments) {
-            return nil, nil // Student not found
-        }
-        return nil, fmt.Errorf("error finding student by ID from MongoDB: %v", err)
-    }
+//func (m *MongoDBDriver) FindStudentByID(id string) (*Student, error) {
+//    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+//    defer cancel()
 
-    return &student, nil
-}
+//    var student Student
+//    err := m.collection.FindOne(ctx, bson.M{"reg_no": id}).Decode(&student)
+//    if err != nil {
+//        if errors.Is(err, mongo.ErrNoDocuments) {
+//            return nil, nil // Student not found
+//        }
+//        return nil, fmt.Errorf("error finding student by ID from MongoDB: %v", err)
+//    }
 
-func (m *MongoDBDriver) InsertTransaction(transaction *Transaction) error {
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
+//    return &student, nil
+//}
 
-    _, err := m.collection.InsertOne(ctx, transaction)
-    if err != nil {
-        return fmt.Errorf("error inserting transaction into MongoDB: %v", err)
-    }
+//func (m *MongoDBDriver) InsertTransaction(transaction *Transaction) error {
+//    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+//    defer cancel()
 
-    return nil
-}
+//    _, err := m.collection.InsertOne(ctx, transaction)
+//    if err != nil {
+//        return fmt.Errorf("error inserting transaction into MongoDB: %v", err)
+//    }
 
-func (m *MongoDBDriver) FindTransactionsByStudentID(id string) ([]*Transaction, error) {
-    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-    defer cancel()
+//    return nil
+//}
 
-    cursor, err := m.collection.Find(ctx, bson.M{"reg_no": id})
-    if err != nil {
-        return nil, fmt.Errorf("error finding transactions by student ID from MongoDB: %v", err)
-    }
-    defer cursor.Close(ctx)
+//func (m *MongoDBDriver) FindTransactionsByStudentID(id string) ([]*Transaction, error) {
+//    ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+//    defer cancel()
 
-    var transactions []*Transaction
-    for cursor.Next(ctx) {
-        var transaction Transaction
-        if err := cursor.Decode(&transaction); err != nil {
-            return nil, fmt.Errorf("error decoding transaction from MongoDB: %v", err)
-        }
-        transactions = append(transactions, &transaction)
-    }
+//    cursor, err := m.collection.Find(ctx, bson.M{"reg_no": id})
+//    if err != nil {
+//        return nil, fmt.Errorf("error finding transactions by student ID from MongoDB: %v", err)
+//    }
+//    defer cursor.Close(ctx)
 
-    return transactions, nil
-}
+//    var transactions []*Transaction
+//    for cursor.Next(ctx) {
+//        var transaction Transaction
+//        if err := cursor.Decode(&transaction); err != nil {
+//            return nil, fmt.Errorf("error decoding transaction from MongoDB: %v", err)
+//        }
+//        transactions = append(transactions, &transaction)
+//    }
+
+//    return transactions, nil
+//}
